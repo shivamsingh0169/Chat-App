@@ -10,6 +10,7 @@ import { Server } from 'socket.io';
 const app = express();
 
 // ✅ Always FIRST: Manual headers for CORS reliability in serverless
+// ✅ Always FIRST: Manual headers for CORS reliability in serverless
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", "https://chat-app-one-bay.vercel.app");
   res.header("Access-Control-Allow-Credentials", "true");
@@ -27,20 +28,18 @@ app.use(cors({
   credentials: true
 }));
 
-// ✅ Then JSON parsing
+// ✅ Handle preflight OPTIONS requests
+app.options('*', cors({
+  origin: [
+    "http://localhost:5173",
+    "https://chat-app-one-bay.vercel.app"
+  ],
+  credentials: true
+}));
+
+// ✅ JSON body parser
 app.use(express.json({ limit: '4mb' }));
 
-// Create HTTP server
-const server = http.createServer(app);
-
-// ✅ Socket.io setup
-export const io = new Server(server, {
-  cors: {
-    origin: "https://chat-app-one-bay.vercel.app",
-    methods: ["GET", "POST"],
-    credentials: true
-  }
-});
 
 // ✅ Store online users
 export const userSocketMap = {}; // { userId: socketId }
@@ -71,10 +70,9 @@ app.use('/api/messages', messageRouter);
 await connectDB();
 
 // ✅ Server listen for dev
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 5000;
-  server.listen(PORT, () => console.log("Server is running on PORT: " + PORT));
-}
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => console.log("Server is running on PORT: " + PORT));
+
 
 // ✅ Export for Vercel (serverless adapter)
 export default server;
