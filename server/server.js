@@ -5,74 +5,57 @@ import http from 'http';
 import { connectDB } from './lib/db.js';
 import userRouter from './routes/userRoutes.js';
 import messageRouter from './routes/messageRoutes.js';
-import { Server } from 'socket.io';
+import {Server} from 'socket.io'
+// create express app and http server
 
 const app = express();
+const server =http.createServer(app)
 
-// ✅ Always FIRST: Manual headers for CORS reliability in serverless
-// ✅ Always FIRST: Manual headers for CORS reliability in serverless
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://chat-app-one-bay.vercel.app");
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  next();
-});
+//Initialize socket.io
+export const io= new Server(server,{
+cors:{origin:'*'}
+})
 
-// ✅ Then apply CORS middleware
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://chat-app-one-bay.vercel.app"
-  ],
-  credentials: true
-}));
+// Store online users
 
-// ✅ Handle preflight OPTIONS requests
-app.options('*', cors({
-  origin: [
-    "http://localhost:5173",
-    "https://chat-app-one-bay.vercel.app"
-  ],
-  credentials: true
-}));
+export const userSocketMap={}; // {userId:socketId}
 
-// ✅ JSON body parser
-app.use(express.json({ limit: '4mb' }));
+//socket.io connection handler
+io.on('connection',(socket)=>{
+    const userId =socket.handshake.query.userId;
+    console.log('User Connected',userId)
 
+    if (userId) {
+        userSocketMap[userId]= socket.id;
+    }
+    // Emit online user to all connection clients
+    io.emit('getOnlineUsers',Object.keys(userSocketMap));
 
-// ✅ Store online users
-export const userSocketMap = {}; // { userId: socketId }
+    socket.on('disconnect',()=>{
+        console.log("User Disconnected", userId);
+        delete userSocketMap[userId];
+        io.emit('getOnlineUsers',Object.keys(userSocketMap))
+    })
+})
 
-io.on('connection', (socket) => {
-  const userId = socket.handshake.query.userId;
-  console.log('User Connected', userId);
+//Middleware setup
 
-  if (userId) {
-    userSocketMap[userId] = socket.id;
-  }
+app.use(express.json({limit:'4mb'}));
+app.use(cors());
 
-  io.emit('getOnlineUsers', Object.keys(userSocketMap));
+// Route Setup
+app.use("/api/status",(req,res)=>res.send("Server is live"));
+app.use('/api/auth',userRouter);
+app.use('/api/messages',messageRouter)
 
-  socket.on('disconnect', () => {
-    console.log("User Disconnected", userId);
-    delete userSocketMap[userId];
-    io.emit('getOnlineUsers', Object.keys(userSocketMap));
-  });
-});
+//Connect to MongoDb
 
-// ✅ Route Setup
-app.use("/api/status", (req, res) => res.send("Server is live"));
-app.use('/api/auth', userRouter);
-app.use('/api/messages', messageRouter);
-
-// ✅ Connect to MongoDB
 await connectDB();
 
-// ✅ Server listen for dev
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log("Server is running on PORT: " + PORT));
 
-
-// ✅ Export for Vercel (serverless adapter)
+if(process.env.NODE_ENV !=="production"){
+    const PORT = process.env.PORT || 5000;
+    server.listen(PORT,()=>console.log("Server is running on PORT: " +PORT));
+}
+// Export server for vercal
 export default server;
