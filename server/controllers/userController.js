@@ -35,25 +35,43 @@ export const signup= async(req,res)=>{
 
 // Controller for login
 
-export const login = async(req,res)=>{
+export const login = async (req, res) => {
     try {
-        const {email, password} = req.body;
-        const userData= await User.findOne({email})
-
-        const isPasswordCorrect = await bcrypt.compare(password, userData.password);
-
-        if (!isPasswordCorrect) {
-            return res.json({success: false, message : "Invalid credentials"});
-        }
-
-        const token = generateToken(userData._id)
-
-        res.json({success:true, userData,token, message:"Login  successful"})
-    } catch (error) {
-        console.log(error.message);
-        res.json({ success: false, message: error.message }); 
+      const { email, password } = req.body;
+  
+      // Basic validation
+      if (!email || !password) {
+        return res.status(400).json({ success: false, message: "Email and password are required" });
       }
-}
+  
+      const userData = await User.findOne({ email });
+  
+      // Check if user exists
+      if (!userData) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+  
+      // Check password
+      const isPasswordCorrect = await bcrypt.compare(password, userData.password);
+      if (!isPasswordCorrect) {
+        return res.status(401).json({ success: false, message: "Invalid credentials" });
+      }
+  
+      // Generate token and respond
+      const token = generateToken(userData._id);
+      res.json({
+        success: true,
+        userData,
+        token,
+        message: "Login successful"
+      });
+  
+    } catch (error) {
+      console.error(error.message);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  };
+  
 
 // Controller to check user is authenticated
 
