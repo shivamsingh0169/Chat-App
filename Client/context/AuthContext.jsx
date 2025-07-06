@@ -17,7 +17,7 @@ export const AuthProvider = ({ children }) => {
   // ✅ Set axios authorization header if token exists
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common["Authorization"] = Bearer ${token};
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     }
     checkAuth();
   }, [token]);
@@ -41,11 +41,11 @@ export const AuthProvider = ({ children }) => {
   // ✅ Login/Signup function
   const login = async (state, credentials) => {
     try {
-      const { data } = await axios.post(/api/auth/${state}, credentials);
+      const { data } = await axios.post(`/api/auth/${state}`, credentials);
       if (data.success) {
         setAuthUser(data.userData);
         connectSocket(data.userData);
-        axios.defaults.headers.common["Authorization"] = Bearer ${data.token};
+        axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
         setToken(data.token);
         localStorage.setItem("token", data.token);
         toast.success(data.message);
