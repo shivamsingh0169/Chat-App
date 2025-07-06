@@ -14,7 +14,7 @@ const server =http.createServer(app)
 //Initialize socket.io
 export const io = new Server(server, {
     cors: {
-      origin: ["https://chat-app-three-wine-11.vercel.app"], 
+      origin: ["https://chat-app-one-bay.vercel.app"], 
       methods: ["GET", "POST"],
       credentials: true
     }
@@ -49,7 +49,7 @@ app.use(express.json({limit:'4mb'}));
 app.use(cors({
     origin: [
       "http://localhost:5173",
-      "https://chat-app-three-wine-11.vercel.app"
+      "https://chat-app-one-bay.vercel.app"
     ],
     credentials: true
   }));
